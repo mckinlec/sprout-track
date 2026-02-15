@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Baby, Unit, Caretaker } from '@prisma/client';
 import { Settings } from '@/app/api/types';
-import { Settings as SettingsIcon, Edit, ExternalLink, AlertCircle, Loader2, Plus } from 'lucide-react';
+import { Settings as SettingsIcon, Edit, ExternalLink, AlertCircle, Loader2, Plus, Smartphone, Copy, Trash2, Check } from 'lucide-react';
 import { Contact } from '@/src/components/CalendarEvent/calendar-event.types';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -16,10 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/src/components/ui/select';
-import { 
-  FormPage, 
-  FormPageContent, 
-  FormPageFooter 
+import {
+  FormPage,
+  FormPageContent,
+  FormPageFooter
 } from '@/src/components/ui/form-page';
 import { ShareButton } from '@/src/components/ui/share-button';
 import { Switch } from '@/src/components/ui/switch';
@@ -29,6 +29,18 @@ import ContactForm from '@/src/components/forms/ContactForm';
 import ChangePinModal from '@/src/components/modals/ChangePinModal';
 import { useToast } from '@/src/components/ui/toast';
 import { handleExpirationError } from '@/src/lib/expiration-error-handler';
+
+interface DeviceToken {
+  id: string;
+  tokenPreview: string;
+  name: string;
+  caretakerName: string;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  isActive: boolean;
+}
 
 interface FamilyData {
   id: string;
@@ -48,8 +60,8 @@ interface SettingsFormProps {
   familyId?: string;
 }
 
-export default function SettingsForm({ 
-  isOpen, 
+export default function SettingsForm({
+  isOpen,
   onClose,
   onBabySelect,
   onBabyStatusChange,
@@ -87,6 +99,13 @@ export default function SettingsForm({
   // Local authType state for immediate UI feedback
   const [localAuthType, setLocalAuthType] = useState<'SYSTEM' | 'CARETAKER'>('SYSTEM');
 
+  // Device token state
+  const [deviceTokens, setDeviceTokens] = useState<DeviceToken[]>([]);
+  const [newTokenName, setNewTokenName] = useState('');
+  const [newlyCreatedUrl, setNewlyCreatedUrl] = useState<string | null>(null);
+  const [isCreatingToken, setIsCreatingToken] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(false);
+
   useEffect(() => {
     // Only set the selected baby ID if explicitly provided
     setLocalSelectedBabyId(selectedBabyId || '');
@@ -108,7 +127,7 @@ export default function SettingsForm({
         }
       });
       const data = await response.json();
-      
+
       if (data.success && data.data && data.data.id !== currentFamilyId) {
         setSlugError('This slug is already taken');
       } else {
@@ -136,13 +155,13 @@ export default function SettingsForm({
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Get auth token for all requests
       const authToken = localStorage.getItem('authToken');
       const headers: HeadersInit = authToken ? {
         'Authorization': `Bearer ${authToken}`
       } : {};
-      
+
       // Check if user is system administrator and build query params
       let isSysAdmin = false;
       if (authToken) {
@@ -154,14 +173,14 @@ export default function SettingsForm({
           console.error('Error parsing JWT token in SettingsForm:', error);
         }
       }
-      
+
       // Build URLs with familyId parameter for system administrators
       const settingsUrl = isSysAdmin && familyId ? `/api/settings?familyId=${familyId}` : '/api/settings';
       const babiesUrl = isSysAdmin && familyId ? `/api/baby?familyId=${familyId}` : '/api/baby';
       const caretakersUrl = isSysAdmin && familyId ? `/api/caretaker?includeInactive=true&familyId=${familyId}` : '/api/caretaker?includeInactive=true';
       const contactsUrl = isSysAdmin && familyId ? `/api/contact?familyId=${familyId}` : '/api/contact';
       const familyUrl = '/api/family';
-      
+
       const [settingsResponse, familyResponse, babiesResponse, unitsResponse, caretakersResponse, contactsResponse, appConfigResponse, deploymentConfigResponse] = await Promise.all([
         fetch(settingsUrl, { headers }),
         fetch(familyUrl, { headers }),
@@ -240,10 +259,107 @@ export default function SettingsForm({
     }
   };
 
+  const fetchDeviceTokens = async () => {
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/device-tokens', {
+        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDeviceTokens(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching device tokens:', error);
+    }
+  };
+
+  const handleCreateDeviceToken = async () => {
+    if (!newTokenName.trim()) return;
+    setIsCreatingToken(true);
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/device-tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ name: newTokenName.trim() }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const kindleUrl = `${window.location.origin}/kindle/${data.data.token}`;
+        setNewlyCreatedUrl(kindleUrl);
+        setNewTokenName('');
+        fetchDeviceTokens();
+      } else {
+        const errorData = await response.json();
+        showToast({ variant: 'error', title: 'Error', message: errorData.error || 'Failed to create token', duration: 5000 });
+      }
+    } catch (error) {
+      console.error('Error creating device token:', error);
+      showToast({ variant: 'error', title: 'Error', message: 'Failed to create device token', duration: 5000 });
+    } finally {
+      setIsCreatingToken(false);
+    }
+  };
+
+  const handleRevokeToken = async (id: string) => {
+    if (!confirm('Revoke this device token? The device will no longer be able to access the tracker.')) return;
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/device-tokens?id=${id}`, {
+        method: 'DELETE',
+        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
+      });
+      if (response.ok) {
+        fetchDeviceTokens();
+        showToast({ variant: 'success', title: 'Revoked', message: 'Device token has been revoked', duration: 3000 });
+      }
+    } catch (error) {
+      console.error('Error revoking device token:', error);
+    }
+  };
+
+  const handleCopyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 2000);
+    } catch {
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 2000);
+    }
+  };
+
+  const formatTimeAgo = (dateStr: string | null) => {
+    if (!dateStr) return 'Never';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
+  };
+
   // Fetch data when form opens
   useEffect(() => {
     if (isOpen) {
       fetchData();
+      fetchDeviceTokens();
+      setNewlyCreatedUrl(null);
+      setNewTokenName('');
     }
   }, [isOpen]);
 
@@ -298,7 +414,7 @@ export default function SettingsForm({
             return;
           }
         }
-        
+
         // Handle other errors
         const errorData = await response.json();
         showToast({
@@ -405,7 +521,7 @@ export default function SettingsForm({
             return;
           }
         }
-        
+
         // Handle other errors
         const errorData = await response.json();
         showToast({
@@ -418,12 +534,12 @@ export default function SettingsForm({
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         setFamily(data.data);
         setEditingFamily(false);
         setSlugError('');
-        
+
         // If slug changed, we should refresh or redirect
         if (data.data.slug !== family?.slug) {
           // Optionally refresh the page or show a message about the URL change
@@ -488,7 +604,7 @@ export default function SettingsForm({
             {/* Family Information Section */}
             <div className="space-y-4">
               <h3 className="form-label mb-4">Family Information</h3>
-              
+
               <div>
                 <Label className="form-label">Family Name</Label>
                 <div className="flex gap-2">
@@ -539,7 +655,7 @@ export default function SettingsForm({
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <Label className="form-label">Link/Slug</Label>
                 <div className="flex gap-2">
@@ -594,7 +710,7 @@ export default function SettingsForm({
               <h3 className="form-label mb-4">Authentication Settings</h3>
 
               <div className="space-y-4">
-              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-500">System PIN</span>
                   <Switch
                     checked={localAuthType === 'CARETAKER'}
@@ -612,7 +728,7 @@ export default function SettingsForm({
                     }
                   </p>
                 </div>
-                
+
               </div>
 
               <div>
@@ -646,49 +762,49 @@ export default function SettingsForm({
                   <p className="text-sm text-red-500 mt-1">Caretaker logins are disabled in System PIN mode</p>
                 )}
               </div>
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-2 w-full">
-                    <div className="flex-1 min-w-[200px]">
-                      <Select
-                        value={selectedCaretaker?.id || ''}
-                        onValueChange={(caretakerId) => {
-                          const caretaker = caretakers.find(c => c.id === caretakerId);
-                          setSelectedCaretaker(caretaker || null);
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a caretaker" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {caretakers.map((caretaker) => (
-                            <SelectItem key={caretaker.id} value={caretaker.id}>
-                              {caretaker.name} {caretaker.type ? `(${caretaker.type})` : ''}{caretaker.inactive ? ' (Inactive)' : ''}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button
-                      variant="outline"
-                      disabled={!selectedCaretaker}
-                      onClick={() => {
-                        setIsEditing(true);
-                        setShowCaretakerForm(true);
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2 w-full">
+                  <div className="flex-1 min-w-[200px]">
+                    <Select
+                      value={selectedCaretaker?.id || ''}
+                      onValueChange={(caretakerId) => {
+                        const caretaker = caretakers.find(c => c.id === caretakerId);
+                        setSelectedCaretaker(caretaker || null);
                       }}
                     >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                    <Button variant="outline" onClick={() => {
-                      setIsEditing(false);
-                      setSelectedCaretaker(null);
-                      setShowCaretakerForm(true);
-                    }}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add
-                    </Button>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a caretaker" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {caretakers.map((caretaker) => (
+                          <SelectItem key={caretaker.id} value={caretaker.id}>
+                            {caretaker.name} {caretaker.type ? `(${caretaker.type})` : ''}{caretaker.inactive ? ' (Inactive)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <Button
+                    variant="outline"
+                    disabled={!selectedCaretaker}
+                    onClick={() => {
+                      setIsEditing(true);
+                      setShowCaretakerForm(true);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    setIsEditing(false);
+                    setSelectedCaretaker(null);
+                    setShowCaretakerForm(true);
+                  }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </Button>
                 </div>
+              </div>
             </div>
 
             <div className="border-t border-slate-200 pt-6">
@@ -696,8 +812,8 @@ export default function SettingsForm({
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2 w-full">
                   <div className="flex-1 min-w-[200px]">
-                    <Select 
-                      value={localSelectedBabyId || ''} 
+                    <Select
+                      value={localSelectedBabyId || ''}
                       onValueChange={(babyId) => {
                         setLocalSelectedBabyId(babyId);
                         onBabySelect?.(babyId);
@@ -715,7 +831,7 @@ export default function SettingsForm({
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button 
+                  <Button
                     variant="outline"
                     disabled={!localSelectedBabyId}
                     onClick={() => {
@@ -746,8 +862,8 @@ export default function SettingsForm({
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2 w-full">
                   <div className="flex-1 min-w-[200px]">
-                    <Select 
-                      value={selectedContact?.id || ''} 
+                    <Select
+                      value={selectedContact?.id || ''}
                       onValueChange={(contactId) => {
                         const contact = contacts.find(c => c.id === contactId);
                         setSelectedContact(contact || null);
@@ -765,7 +881,7 @@ export default function SettingsForm({
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button 
+                  <Button
                     variant="outline"
                     disabled={!selectedContact}
                     onClick={() => {
@@ -788,6 +904,100 @@ export default function SettingsForm({
               </div>
             </div>
 
+            {/* Device Tokens Section */}
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="form-label mb-2 flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                Device Tokens
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Create tokens for devices like Kindle to log activities without signing in.
+              </p>
+
+              {/* Create new token */}
+              <div className="flex gap-2 mb-4">
+                <Input
+                  value={newTokenName}
+                  onChange={(e) => setNewTokenName(e.target.value)}
+                  placeholder='Device name (e.g. "Bedroom Kindle")'
+                  className="flex-1"
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateDeviceToken()}
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleCreateDeviceToken}
+                  disabled={isCreatingToken || !newTokenName.trim()}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create
+                </Button>
+              </div>
+
+              {/* Show newly created URL */}
+              {newlyCreatedUrl && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm font-medium text-green-800 mb-1">✅ Token created! Copy this URL to your device:</p>
+                  <div className="flex gap-2 items-center">
+                    <code className="text-xs bg-green-100 text-green-900 px-2 py-1 rounded flex-1 break-all">
+                      {newlyCreatedUrl}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopyUrl(newlyCreatedUrl)}
+                      className="shrink-0"
+                    >
+                      {copiedToken ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-green-700 mt-1">⚠️ This URL is only shown once. Copy it now!</p>
+                </div>
+              )}
+
+              {/* Token list */}
+              {deviceTokens.length > 0 && (
+                <div className="space-y-2">
+                  {deviceTokens.map((token) => (
+                    <div
+                      key={token.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${token.isActive
+                          ? 'bg-white border-slate-200'
+                          : 'bg-gray-50 border-gray-200 opacity-60'
+                        }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-block w-2 h-2 rounded-full ${token.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
+                          <span className="font-medium text-sm text-slate-800 truncate">{token.name}</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1 ml-4">
+                          {token.isActive ? (
+                            <>Last used: {formatTimeAgo(token.lastUsedAt)}</>
+                          ) : (
+                            <span className="text-red-500">Revoked</span>
+                          )}
+                        </div>
+                      </div>
+                      {token.isActive && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRevokeToken(token.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {deviceTokens.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-2">No device tokens yet</p>
+              )}
+            </div>
+
             <div className="border-t border-slate-200 pt-6">
               <h3 className="form-label mb-4">Debug Settings</h3>
               <div className="space-y-4">
@@ -806,7 +1016,7 @@ export default function SettingsForm({
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="form-label">Enable Debug Timezone Tool</Label>
@@ -969,7 +1179,7 @@ export default function SettingsForm({
             )}
           </div>
         </FormPageContent>
-        
+
         <FormPageFooter>
           <Button variant="outline" onClick={onClose}>
             Close

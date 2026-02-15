@@ -722,6 +722,55 @@ export function withAuthContext<T>(
 }
 
 /**
+ * Validates a device token for pre-authenticated device access (e.g., Kindle)
+ * @param token The device token string
+ * @returns AuthResult with the token's family and caretaker context
+ */
+export async function validateDeviceToken(token: string): Promise<AuthResult> {
+  try {
+    const deviceToken = await prisma.deviceToken.findUnique({
+      where: { token },
+      include: {
+        caretaker: { select: { id: true, type: true, role: true, name: true } },
+        family: { select: { id: true, slug: true } },
+      },
+    });
+
+    if (!deviceToken) {
+      return { authenticated: false, error: 'Invalid device token' };
+    }
+
+    if (deviceToken.revokedAt) {
+      return { authenticated: false, error: 'Device token has been revoked' };
+    }
+
+    if (deviceToken.expiresAt && new Date() > deviceToken.expiresAt) {
+      return { authenticated: false, error: 'Device token has expired' };
+    }
+
+    // Update last used timestamp (fire-and-forget)
+    prisma.deviceToken.update({
+      where: { id: deviceToken.id },
+      data: { lastUsedAt: new Date() },
+    }).catch(err => console.error('Failed to update device token lastUsedAt:', err));
+
+    return {
+      authenticated: true,
+      caretakerId: deviceToken.caretakerId,
+      caretakerType: deviceToken.caretaker.type,
+      caretakerRole: deviceToken.caretaker.role,
+      familyId: deviceToken.familyId,
+      familySlug: deviceToken.family?.slug || null,
+      isSysAdmin: false,
+      authType: 'DEVICE_TOKEN',
+    };
+  } catch (error) {
+    console.error('Device token validation error:', error);
+    return { authenticated: false, error: 'Device token validation failed' };
+  }
+}
+
+/**
  * Invalidates a JWT token by adding it to the blacklist
  * @param token The JWT token to invalidate
  * @returns True if the token was successfully invalidated

@@ -175,6 +175,7 @@ model Family {
   familyMembers    FamilyMember[]
   familySetups     FamilySetup[]
   feedback         Feedback[]
+  deviceTokens     DeviceToken[]
 }
 
 // New model for family membership
@@ -263,6 +264,7 @@ model Caretaker {
   familyMembers FamilyMember[]
   familySetups  FamilySetup[]
   feedback     Feedback[]
+  deviceTokens DeviceToken[]
   
   @@index([deletedAt])
   @@index([familyId])
@@ -805,6 +807,27 @@ model FamilySetup {
   family    Family?   @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
   @@index([createdBy])
+}
+
+// Device tokens for pre-authenticated device access (e.g., Kindle)
+model DeviceToken {
+  id          String    @id @default(cuid())
+  token       String    @unique        // Random 64-char hex string
+  name        String                   // Friendly name like "Bedroom Kindle"
+  familyId    String
+  caretakerId String                   // Which caretaker this device acts as
+  expiresAt   DateTime?                // Null = never expires
+  revokedAt   DateTime?                // Null = active
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  family    Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  caretaker Caretaker @relation(fields: [caretakerId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([familyId])
+  @@index([caretakerId])
 }
 
 // Beta subscriber for coming soon page signups
