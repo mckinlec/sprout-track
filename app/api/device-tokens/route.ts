@@ -41,8 +41,8 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
             data: {
                 token,
                 name: name.trim(),
-                familyId,
-                caretakerId: caretakerId!,
+                family: { connect: { id: familyId } },
+                caretaker: { connect: { id: caretakerId! } },
                 expiresAt: expiresAt ? new Date(expiresAt) : null,
             },
         });
