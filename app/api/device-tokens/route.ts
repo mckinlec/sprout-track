@@ -42,7 +42,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
                 token,
                 name: name.trim(),
                 family: { connect: { id: familyId } },
-                caretaker: { connect: { id: caretakerId! } },
+                ...(caretakerId ? { caretaker: { connect: { id: caretakerId } } } : {}),
                 expiresAt: expiresAt ? new Date(expiresAt) : null,
             },
         });
@@ -104,7 +104,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
             id: t.id,
             tokenPreview: t.token.substring(0, 8) + '...',
             name: t.name,
-            caretakerName: t.caretaker.name,
+            caretakerName: t.caretaker?.name || 'System',
             expiresAt: t.expiresAt,
             revokedAt: t.revokedAt,
             lastUsedAt: t.lastUsedAt,

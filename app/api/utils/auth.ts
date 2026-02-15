@@ -100,7 +100,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
       try {
         // Verify and decode the token
         const decoded = jwt.verify(token, getJwtSecret()) as any;
-        
+
         // Handle setup authentication tokens
         if (decoded.isSetupAuth && decoded.setupToken) {
           return {
@@ -115,7 +115,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
             setupToken: decoded.setupToken,
           };
         }
-        
+
         // Handle account authentication tokens
         if (decoded.isAccountAuth) {
           // For account authentication, always fetch fresh family info from database
@@ -123,7 +123,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
           try {
             const account = await prisma.account.findUnique({
               where: { id: decoded.accountId },
-              include: { 
+              include: {
                 family: { select: { id: true, slug: true } },
                 caretaker: { select: { id: true, role: true, type: true, loginId: true } }
               }
@@ -187,7 +187,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
             } else {
               // Account without linked caretaker - limited permissions (during setup)
               console.log('Account has no linked caretaker - setup may be incomplete');
-              
+
               // If account has no family AND no caretaker, they're in initial setup phase
               if (!account.family) {
                 console.log('Account has no family - redirect to setup needed');
@@ -237,7 +237,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
             return { authenticated: false, error: 'Failed to verify account status' };
           }
         }
-        
+
         // Handle regular user/admin tokens (PIN-based JWT tokens)
         const regularDecoded = decoded as {
           id: string;
@@ -336,7 +336,7 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<AuthResult
         return { authenticated: false, error: 'Invalid or expired token' };
       }
     }
-    
+
     // If no token but we have a caretakerId cookie, use the old method (backward compatibility)
     if (caretakerId) {
       // Verify caretaker exists in database
@@ -443,7 +443,7 @@ export function withAuth<T>(
 ) {
   return async (req: NextRequest): Promise<NextResponse<ApiResponse<T | null>>> => {
     const authResult = await getAuthenticatedUser(req);
-    
+
     if (!authResult.authenticated) {
       return NextResponse.json<ApiResponse<null>>(
         {
@@ -453,7 +453,7 @@ export function withAuth<T>(
         { status: 401 }
       );
     }
-    
+
     return handler(req);
   };
 }
@@ -468,7 +468,7 @@ export function withAdminAuth<T>(
 ) {
   return async (req: NextRequest): Promise<NextResponse<ApiResponse<T | null>>> => {
     const authResult = await getAuthenticatedUser(req);
-    
+
     if (!authResult.authenticated) {
       return NextResponse.json<ApiResponse<null>>(
         {
@@ -478,7 +478,7 @@ export function withAdminAuth<T>(
         { status: 401 }
       );
     }
-    
+
     // Check if user is an admin by role, system admin, or system caretaker
     let isSystemCaretaker = false;
     if (authResult.caretakerId) {
@@ -495,7 +495,7 @@ export function withAdminAuth<T>(
         console.error('Error checking system caretaker:', error);
       }
     }
-    
+
     // Allow access for: ADMIN role, system caretakers, or system administrators
     if (authResult.caretakerRole !== 'ADMIN' && !isSystemCaretaker && !authResult.isSysAdmin) {
       return NextResponse.json<ApiResponse<null>>(
@@ -506,7 +506,7 @@ export function withAdminAuth<T>(
         { status: 403 }
       );
     }
-    
+
     return handler(req);
   };
 }
@@ -521,7 +521,7 @@ export function withSysAdminAuth<T>(
 ) {
   return async (req: NextRequest): Promise<NextResponse<ApiResponse<T | null>>> => {
     const authResult = await getAuthenticatedUser(req);
-    
+
     if (!authResult.authenticated) {
       return NextResponse.json<ApiResponse<null>>(
         {
@@ -531,7 +531,7 @@ export function withSysAdminAuth<T>(
         { status: 401 }
       );
     }
-    
+
     // Check if user is a system administrator
     if (!authResult.isSysAdmin) {
       return NextResponse.json<ApiResponse<null>>(
@@ -542,7 +542,7 @@ export function withSysAdminAuth<T>(
         { status: 403 }
       );
     }
-    
+
     return handler(req);
   };
 }
@@ -557,15 +557,15 @@ export function withAccountOwner<T>(
 ) {
   return async (req: NextRequest): Promise<NextResponse<ApiResponse<T | null>>> => {
     const authResult = await getAuthenticatedUser(req);
-    
+
     if (!authResult.authenticated) {
       return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
     }
-    
+
     if (!authResult.isAccountOwner && !authResult.isSysAdmin) {
       return NextResponse.json({ success: false, error: 'Account owner access required' }, { status: 403 });
     }
-    
+
     return handler(req, authResult);
   };
 }
@@ -581,7 +581,7 @@ export function withAuthContext<T>(
 ) {
   return async (req: NextRequest): Promise<NextResponse<ApiResponse<T | null>>> => {
     const authResult = await getAuthenticatedUser(req);
-    
+
     if (!authResult.authenticated) {
       return NextResponse.json<ApiResponse<null>>(
         {
@@ -591,20 +591,20 @@ export function withAuthContext<T>(
         { status: 401 }
       );
     }
-    
+
     // Setup authentication: extract family context from query params during family setup
     if (authResult.isSetupAuth && authResult.setupToken) {
       // Try to get familyId from query parameter
       const { searchParams } = new URL(req.url);
       let familyId = searchParams.get('familyId');
-      
+
       // If familyId is provided, validate that the setup token is authorized for this family
       if (familyId) {
         try {
           const setupToken = await prisma.familySetup.findUnique({
             where: { token: authResult.setupToken }
           });
-          
+
           // Validate that the setup token exists and is associated with this family
           // For active setup processes, the familyId might be set in the token
           if (setupToken && (setupToken.familyId === familyId || !setupToken.familyId)) {
@@ -613,7 +613,7 @@ export function withAuthContext<T>(
               ...authResult,
               familyId: familyId
             };
-            
+
             return handler(req, modifiedAuthResult);
           } else {
             return NextResponse.json<ApiResponse<null>>(
@@ -635,7 +635,7 @@ export function withAuthContext<T>(
           );
         }
       }
-      
+
       // If no familyId provided, continue with original auth result
       return handler(req, authResult);
     }
@@ -645,26 +645,26 @@ export function withAuthContext<T>(
       // Try to get familyId from query parameter first
       const { searchParams } = new URL(req.url);
       let familyId = searchParams.get('familyId');
-      
+
       // If no familyId in query params, try to extract from URL path (for family-specific routes like /[slug]/...)
       if (!familyId) {
         const url = new URL(req.url);
         const pathSegments = url.pathname.split('/').filter(Boolean);
-        
+
         // Check if this looks like a family route (not api, family-manager, etc.)
-        if (pathSegments.length > 0 && 
-            !pathSegments[0].startsWith('api') && 
-            !pathSegments[0].startsWith('family-manager') &&
-            !pathSegments[0].startsWith('setup')) {
-          
+        if (pathSegments.length > 0 &&
+          !pathSegments[0].startsWith('api') &&
+          !pathSegments[0].startsWith('family-manager') &&
+          !pathSegments[0].startsWith('setup')) {
+
           const familySlug = pathSegments[0];
-          
+
           // Look up family by slug to get familyId
           try {
             const family = await prisma.family.findUnique({
               where: { slug: familySlug }
             });
-            
+
             if (family) {
               familyId = family.id;
             }
@@ -673,7 +673,7 @@ export function withAuthContext<T>(
           }
         }
       }
-      
+
       // If still no familyId, try to extract from referer header (for API calls from family pages)
       if (!familyId) {
         const referer = req.headers.get('referer');
@@ -681,20 +681,20 @@ export function withAuthContext<T>(
           try {
             const refererUrl = new URL(referer);
             const refererPathSegments = refererUrl.pathname.split('/').filter(Boolean);
-            
+
             // Check if referer is a family route
-            if (refererPathSegments.length > 0 && 
-                !refererPathSegments[0].startsWith('api') && 
-                !refererPathSegments[0].startsWith('family-manager') &&
-                !refererPathSegments[0].startsWith('setup')) {
-              
+            if (refererPathSegments.length > 0 &&
+              !refererPathSegments[0].startsWith('api') &&
+              !refererPathSegments[0].startsWith('family-manager') &&
+              !refererPathSegments[0].startsWith('setup')) {
+
               const familySlug = refererPathSegments[0];
-              
+
               // Look up family by slug to get familyId
               const family = await prisma.family.findUnique({
                 where: { slug: familySlug }
               });
-              
+
               if (family) {
                 familyId = family.id;
               }
@@ -704,19 +704,19 @@ export function withAuthContext<T>(
           }
         }
       }
-      
+
       // Create modified auth result with the family context
       const modifiedAuthResult = {
         ...authResult,
         familyId: familyId || authResult.familyId
       };
-      
+
       return handler(req, modifiedAuthResult);
     }
-    
+
     // Note: We no longer need to set caretakerId to null for system caretakers
     // All caretakers (including system ones) should maintain their ID for proper authorization
-    
+
     return handler(req, authResult);
   };
 }
@@ -757,8 +757,8 @@ export async function validateDeviceToken(token: string): Promise<AuthResult> {
     return {
       authenticated: true,
       caretakerId: deviceToken.caretakerId,
-      caretakerType: deviceToken.caretaker.type,
-      caretakerRole: deviceToken.caretaker.role,
+      caretakerType: deviceToken.caretaker?.type,
+      caretakerRole: deviceToken.caretaker?.role,
       familyId: deviceToken.familyId,
       familySlug: deviceToken.family?.slug || null,
       isSysAdmin: false,
@@ -779,14 +779,14 @@ export function invalidateToken(token: string): boolean {
   try {
     // Decode the token without verification to get expiry
     const decoded = jwt.decode(token) as { exp?: number };
-    
+
     if (decoded && decoded.exp) {
       // Store the token in the blacklist until its original expiry time
       const expiryMs = decoded.exp * 1000; // Convert seconds to milliseconds
       tokenBlacklist.set(token, expiryMs);
       return true;
     }
-    
+
     return false;
   } catch (error) {
     console.error('Error invalidating token:', error);

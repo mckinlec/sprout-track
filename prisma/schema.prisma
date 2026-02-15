@@ -815,15 +815,15 @@ model DeviceToken {
   token       String    @unique        // Random 64-char hex string
   name        String                   // Friendly name like "Bedroom Kindle"
   familyId    String
-  caretakerId String                   // Which caretaker this device acts as
+  caretakerId String?                  // Which caretaker this device acts as (null for system PIN)
   expiresAt   DateTime?                // Null = never expires
   revokedAt   DateTime?                // Null = active
   lastUsedAt  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  family    Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  caretaker Caretaker @relation(fields: [caretakerId], references: [id], onDelete: Cascade)
+  family    Family     @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  caretaker Caretaker? @relation(fields: [caretakerId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@index([familyId])

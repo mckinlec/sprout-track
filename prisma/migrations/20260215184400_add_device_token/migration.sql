@@ -4,7 +4,7 @@ CREATE TABLE "DeviceToken" (
     "token" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "familyId" TEXT NOT NULL,
-    "caretakerId" TEXT NOT NULL,
+    "caretakerId" TEXT,
     "expiresAt" DATETIME,
     "revokedAt" DATETIME,
     "lastUsedAt" DATETIME,
