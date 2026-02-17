@@ -4,7 +4,11 @@ import { validateDeviceToken } from '../../utils/auth';
 
 // POST - Handle Kindle form submissions (standard HTML form POST)
 export async function POST(req: NextRequest) {
-    const origin = new URL(req.url).origin;
+    // Derive origin from headers — req.url resolves to localhost inside Docker
+    const forwardedHost = req.headers.get('x-forwarded-host');
+    const host = forwardedHost || req.headers.get('host') || 'localhost:3000';
+    const protocol = req.headers.get('x-forwarded-proto') || 'http';
+    const origin = `${protocol}://${host}`;
     let token = '';
 
     try {
@@ -159,8 +163,7 @@ export async function POST(req: NextRequest) {
         }
     } catch (error) {
         console.error('Kindle form submission error:', error);
-        const fallbackOrigin = new URL(req.url).origin;
-        return redirectWithError(fallbackOrigin, token, 'An error occurred');
+        return redirectWithError(origin, token, 'An error occurred');
     }
 }
 
