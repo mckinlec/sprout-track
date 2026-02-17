@@ -24,7 +24,7 @@ export default async function KindlePage({ params, searchParams }: KindlePagePro
         return (
             <div style={styles.container}>
                 <div style={styles.errorPage}>
-                    <div style={{ fontSize: '32px', marginBottom: '16px', fontWeight: 'bold' }}>ACCESS DENIED</div>
+                    <div style={{ fontSize: '32px', marginBottom: '16px', fontWeight: 'bold', color: '#c62828' }}>ACCESS DENIED</div>
                     <p style={{ color: '#666', fontSize: '18px' }}>{authResult.error || 'Invalid or expired device token'}</p>
                 </div>
             </div>
@@ -98,7 +98,7 @@ export default async function KindlePage({ params, searchParams }: KindlePagePro
         <div style={styles.container}>
             {/* Header */}
             <div style={styles.header}>
-                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>Baby Tracker</div>
+                <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#2e7d32' }}>Baby Tracker</div>
             </div>
 
             {/* Baby Selector (if multiple babies) */}
@@ -128,7 +128,7 @@ export default async function KindlePage({ params, searchParams }: KindlePagePro
             )}
 
             {/* Current Baby Name */}
-            <div style={{ textAlign: 'center' as const, fontSize: '20px', padding: '8px 0', fontWeight: 'bold' }}>
+            <div style={{ textAlign: 'center' as const, fontSize: '20px', padding: '8px 0', fontWeight: 'bold', color: '#333' }}>
                 {currentBaby.firstName}
             </div>
 
@@ -150,7 +150,7 @@ export default async function KindlePage({ params, searchParams }: KindlePagePro
             <div style={styles.grid}>
                 {/* Feed - Bottle */}
                 <div style={styles.card}>
-                    <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', borderBottom: '2px solid #ccc', paddingBottom: '8px' }}>BOTTLE</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: '#1565c0', borderBottom: '2px solid #1565c0', paddingBottom: '8px' }}>BOTTLE</div>
                     <form action="/api/kindle/log" method="POST">
                         <input type="hidden" name="token" value={token} />
                         <input type="hidden" name="action" value="feed-bottle" />
@@ -171,47 +171,47 @@ export default async function KindlePage({ params, searchParams }: KindlePagePro
                             <option value="milk">Milk</option>
                             <option value="other">Other</option>
                         </select>
-                        <button type="submit" style={styles.submitBtn}>Log Bottle</button>
+                        <button type="submit" style={{ ...styles.submitBtn, backgroundColor: '#1565c0' }}>Log Bottle</button>
                     </form>
                 </div>
 
                 {/* Feed - Breast */}
                 <div style={styles.card}>
-                    <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', borderBottom: '2px solid #ccc', paddingBottom: '8px' }}>BREAST</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: '#ad1457', borderBottom: '2px solid #ad1457', paddingBottom: '8px' }}>BREAST</div>
                     <form action="/api/kindle/log" method="POST">
                         <input type="hidden" name="token" value={token} />
                         <input type="hidden" name="action" value="feed-breast" />
                         <input type="hidden" name="babyId" value={currentBaby.id} />
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                            <button type="submit" name="side" value="LEFT" style={{ ...styles.submitBtn, flex: 1 }}>Left</button>
-                            <button type="submit" name="side" value="RIGHT" style={{ ...styles.submitBtn, flex: 1 }}>Right</button>
+                        <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
+                            <button type="submit" name="side" value="LEFT" style={{ ...styles.submitBtn, flex: 1, backgroundColor: '#ad1457' }}>Left</button>
+                            <button type="submit" name="side" value="RIGHT" style={{ ...styles.submitBtn, flex: 1, backgroundColor: '#ad1457' }}>Right</button>
                         </div>
                     </form>
                 </div>
 
                 {/* Diaper */}
                 <div style={styles.card}>
-                    <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', borderBottom: '2px solid #ccc', paddingBottom: '8px' }}>DIAPER</div>
-                    <form action="/api/kindle/log" method="POST" style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: '#00838f', borderBottom: '2px solid #00838f', paddingBottom: '8px' }}>DIAPER</div>
+                    <form action="/api/kindle/log" method="POST" style={{ display: 'flex', flexDirection: 'column' as const, gap: '16px' }}>
                         <input type="hidden" name="token" value={token} />
                         <input type="hidden" name="action" value="diaper" />
                         <input type="hidden" name="babyId" value={currentBaby.id} />
-                        <button type="submit" name="type" value="WET" style={{ ...styles.submitBtn, backgroundColor: '#555' }}>Wet</button>
-                        <button type="submit" name="type" value="DIRTY" style={{ ...styles.submitBtn, backgroundColor: '#333' }}>Dirty</button>
-                        <button type="submit" name="type" value="BOTH" style={{ ...styles.submitBtn, backgroundColor: '#444' }}>Both</button>
+                        <button type="submit" name="type" value="WET" style={{ ...styles.submitBtn, backgroundColor: '#0288d1', padding: '16px' }}>Wet</button>
+                        <button type="submit" name="type" value="DIRTY" style={{ ...styles.submitBtn, backgroundColor: '#795548', padding: '16px' }}>Dirty</button>
+                        <button type="submit" name="type" value="BOTH" style={{ ...styles.submitBtn, backgroundColor: '#6a1b9a', padding: '16px' }}>Both</button>
                     </form>
                 </div>
 
                 {/* Sleep */}
                 {!activeSleep && (
                     <div style={styles.card}>
-                        <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', borderBottom: '2px solid #ccc', paddingBottom: '8px' }}>SLEEP</div>
-                        <form action="/api/kindle/log" method="POST" style={{ display: 'flex', flexDirection: 'column' as const, gap: '8px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: '#283593', borderBottom: '2px solid #283593', paddingBottom: '8px' }}>SLEEP</div>
+                        <form action="/api/kindle/log" method="POST" style={{ display: 'flex', flexDirection: 'column' as const, gap: '16px' }}>
                             <input type="hidden" name="token" value={token} />
                             <input type="hidden" name="action" value="sleep-start" />
                             <input type="hidden" name="babyId" value={currentBaby.id} />
-                            <button type="submit" name="sleepType" value="NIGHT_SLEEP" style={{ ...styles.submitBtn, backgroundColor: '#222' }}>Night Sleep</button>
-                            <button type="submit" name="sleepType" value="NAP" style={{ ...styles.submitBtn, backgroundColor: '#555' }}>Nap</button>
+                            <button type="submit" name="sleepType" value="NIGHT_SLEEP" style={{ ...styles.submitBtn, backgroundColor: '#1a237e', padding: '16px' }}>Night Sleep</button>
+                            <button type="submit" name="sleepType" value="NAP" style={{ ...styles.submitBtn, backgroundColor: '#5c6bc0', padding: '16px' }}>Nap</button>
                         </form>
                     </div>
                 )}
@@ -219,7 +219,7 @@ export default async function KindlePage({ params, searchParams }: KindlePagePro
                 {/* Medicine */}
                 {medicines.length > 0 && (
                     <div style={styles.card}>
-                        <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px', borderBottom: '2px solid #ccc', paddingBottom: '8px' }}>MEDICINE</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: '#e65100', borderBottom: '2px solid #e65100', paddingBottom: '8px' }}>MEDICINE</div>
                         <form action="/api/kindle/log" method="POST">
                             <input type="hidden" name="token" value={token} />
                             <input type="hidden" name="action" value="medicine" />
@@ -240,7 +240,7 @@ export default async function KindlePage({ params, searchParams }: KindlePagePro
                                     style={styles.input}
                                 />
                             </div>
-                            <button type="submit" style={{ ...styles.submitBtn, backgroundColor: '#333' }}>Give Medicine</button>
+                            <button type="submit" style={{ ...styles.submitBtn, backgroundColor: '#e65100' }}>Give Medicine</button>
                         </form>
                     </div>
                 )}
@@ -248,17 +248,17 @@ export default async function KindlePage({ params, searchParams }: KindlePagePro
 
             {/* Recent Activity */}
             <div style={styles.recentActivity}>
-                <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #ccc', paddingBottom: '4px' }}>Recent Activity</div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px', color: '#555', borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>Recent Activity</div>
                 {lastFeed && (
                     <div style={styles.activityRow}>
-                        Last feed: <strong>{feedAgo}</strong>
+                        <span style={{ color: '#1565c0', fontWeight: 'bold' }}>Feed:</span> <strong>{feedAgo}</strong>
                         {lastFeed.type === 'BOTTLE' && lastFeed.amount ? ` - ${lastFeed.amount}${lastFeed.unitAbbr || 'oz'}` : ''}
                         {lastFeed.type === 'BREAST' && lastFeed.side ? ` - ${lastFeed.side.toLowerCase()} side` : ''}
                     </div>
                 )}
                 {lastDiaper && (
                     <div style={styles.activityRow}>
-                        Last diaper: <strong>{diaperAgo}</strong> - {lastDiaper.type.toLowerCase()}
+                        <span style={{ color: '#00838f', fontWeight: 'bold' }}>Diaper:</span> <strong>{diaperAgo}</strong> - {lastDiaper.type.toLowerCase()}
                     </div>
                 )}
                 {!lastFeed && !lastDiaper && (
@@ -296,21 +296,21 @@ function formatTime(date: Date): string {
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 }
 
-// Inline styles - high contrast light theme for Kindle e-ink display
+// Inline styles - colorful theme for Kindle Colorsoft
 const styles: Record<string, React.CSSProperties> = {
     container: {
         maxWidth: '600px',
         margin: '0 auto',
         padding: '12px',
         minHeight: '100vh',
-        backgroundColor: '#fff',
-        color: '#000',
-        fontFamily: 'serif',
+        backgroundColor: '#fafafa',
+        color: '#222',
+        fontFamily: 'sans-serif',
     },
     header: {
         textAlign: 'center',
         padding: '12px 0',
-        borderBottom: '3px solid #000',
+        borderBottom: '3px solid #2e7d32',
         marginBottom: '12px',
     },
     babySelector: {
@@ -322,46 +322,46 @@ const styles: Record<string, React.CSSProperties> = {
     },
     babyTab: {
         padding: '10px 20px',
-        backgroundColor: '#eee',
-        color: '#000',
+        backgroundColor: '#e8e8e8',
+        color: '#333',
         textDecoration: 'none',
-        borderRadius: '4px',
+        borderRadius: '6px',
         fontSize: '16px',
         fontWeight: 'bold',
-        border: '2px solid #999',
+        border: '2px solid #bbb',
     },
     babyTabActive: {
-        backgroundColor: '#000',
+        backgroundColor: '#2e7d32',
         color: '#fff',
-        border: '2px solid #000',
+        border: '2px solid #1b5e20',
     },
     successToast: {
-        backgroundColor: '#ddd',
-        color: '#000',
+        backgroundColor: '#e8f5e9',
+        color: '#1b5e20',
         padding: '12px 16px',
-        borderRadius: '4px',
+        borderRadius: '6px',
         textAlign: 'center',
         marginBottom: '12px',
         fontSize: '18px',
         fontWeight: 'bold',
-        border: '3px solid #000',
+        border: '2px solid #4caf50',
     },
     errorToast: {
-        backgroundColor: '#ccc',
-        color: '#000',
+        backgroundColor: '#ffebee',
+        color: '#b71c1c',
         padding: '12px 16px',
-        borderRadius: '4px',
+        borderRadius: '6px',
         textAlign: 'center',
         marginBottom: '12px',
         fontSize: '18px',
         fontWeight: 'bold',
-        border: '3px solid #000',
+        border: '2px solid #e53935',
     },
     sleepBanner: {
-        backgroundColor: '#ddd',
-        color: '#000',
-        padding: '12px 16px',
-        borderRadius: '4px',
+        backgroundColor: '#e8eaf6',
+        color: '#1a237e',
+        padding: '14px 16px',
+        borderRadius: '6px',
         textAlign: 'center',
         marginBottom: '12px',
         fontSize: '16px',
@@ -369,15 +369,15 @@ const styles: Record<string, React.CSSProperties> = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '8px',
-        border: '3px solid #000',
+        gap: '10px',
+        border: '2px solid #3949ab',
     },
     wakeButton: {
-        backgroundColor: '#000',
+        backgroundColor: '#ef6c00',
         color: '#fff',
         border: 'none',
-        padding: '10px 24px',
-        borderRadius: '4px',
+        padding: '12px 28px',
+        borderRadius: '6px',
         fontSize: '18px',
         fontWeight: 'bold',
         cursor: 'pointer',
@@ -385,24 +385,24 @@ const styles: Record<string, React.CSSProperties> = {
     grid: {
         display: 'grid',
         gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '12px',
+        gap: '14px',
         marginBottom: '16px',
     },
     card: {
-        backgroundColor: '#f5f5f5',
-        borderRadius: '4px',
+        backgroundColor: '#fff',
+        borderRadius: '8px',
         padding: '16px',
         textAlign: 'center',
-        border: '2px solid #000',
+        border: '2px solid #ddd',
     },
     input: {
         width: '100%',
         padding: '10px',
         fontSize: '16px',
         backgroundColor: '#fff',
-        color: '#000',
-        border: '2px solid #000',
-        borderRadius: '4px',
+        color: '#222',
+        border: '2px solid #aaa',
+        borderRadius: '6px',
         boxSizing: 'border-box',
     },
     select: {
@@ -410,33 +410,33 @@ const styles: Record<string, React.CSSProperties> = {
         padding: '10px',
         fontSize: '16px',
         backgroundColor: '#fff',
-        color: '#000',
-        border: '2px solid #000',
-        borderRadius: '4px',
+        color: '#222',
+        border: '2px solid #aaa',
+        borderRadius: '6px',
         marginBottom: '8px',
         boxSizing: 'border-box',
     },
     submitBtn: {
         width: '100%',
-        padding: '12px',
+        padding: '14px',
         fontSize: '16px',
         fontWeight: 'bold',
-        backgroundColor: '#000',
+        backgroundColor: '#333',
         color: '#fff',
         border: 'none',
-        borderRadius: '4px',
+        borderRadius: '6px',
         cursor: 'pointer',
     },
     recentActivity: {
-        backgroundColor: '#f5f5f5',
-        borderRadius: '4px',
+        backgroundColor: '#fff',
+        borderRadius: '8px',
         padding: '16px',
-        border: '2px solid #000',
+        border: '2px solid #ddd',
     },
     activityRow: {
         padding: '6px 0',
         fontSize: '16px',
-        borderBottom: '1px solid #ccc',
+        borderBottom: '1px solid #eee',
     },
     errorPage: {
         display: 'flex',
