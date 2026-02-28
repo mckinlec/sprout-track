@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Baby, Unit, Caretaker } from '@prisma/client';
 import { Settings } from '@/app/api/types';
-import { Settings as SettingsIcon, Edit, ExternalLink, AlertCircle, Loader2, Plus, Smartphone, Copy, Trash2, Check } from 'lucide-react';
+import { Settings as SettingsIcon, Edit, ExternalLink, AlertCircle, Loader2, Plus, Smartphone, Copy, Trash2, Check, Link } from 'lucide-react';
 import { Contact } from '@/src/components/CalendarEvent/calendar-event.types';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -102,9 +102,11 @@ export default function SettingsForm({
   // Device token state
   const [deviceTokens, setDeviceTokens] = useState<DeviceToken[]>([]);
   const [newTokenName, setNewTokenName] = useState('');
-  const [newlyCreatedUrl, setNewlyCreatedUrl] = useState<string | null>(null);
+  const [newlyCreatedKindleUrl, setNewlyCreatedKindleUrl] = useState<string | null>(null);
+  const [newlyCreatedAppUrl, setNewlyCreatedAppUrl] = useState<string | null>(null);
   const [isCreatingToken, setIsCreatingToken] = useState(false);
-  const [copiedToken, setCopiedToken] = useState(false);
+  const [copiedKindleUrl, setCopiedKindleUrl] = useState(false);
+  const [copiedAppUrl, setCopiedAppUrl] = useState(false);
 
   useEffect(() => {
     // Only set the selected baby ID if explicitly provided
@@ -290,7 +292,9 @@ export default function SettingsForm({
       if (response.ok) {
         const data = await response.json();
         const kindleUrl = `${window.location.origin}/kindle/${data.data.token}`;
-        setNewlyCreatedUrl(kindleUrl);
+        const appUrl = `${window.location.origin}/link/${data.data.token}`;
+        setNewlyCreatedKindleUrl(kindleUrl);
+        setNewlyCreatedAppUrl(appUrl);
         setNewTokenName('');
         fetchDeviceTokens();
       } else {
@@ -322,11 +326,12 @@ export default function SettingsForm({
     }
   };
 
-  const handleCopyUrl = async (url: string) => {
+  const handleCopyUrl = async (url: string, type: 'kindle' | 'app') => {
+    const setCopied = type === 'kindle' ? setCopiedKindleUrl : setCopiedAppUrl;
     try {
       await navigator.clipboard.writeText(url);
-      setCopiedToken(true);
-      setTimeout(() => setCopiedToken(false), 2000);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       const textArea = document.createElement('textarea');
       textArea.value = url;
@@ -334,8 +339,8 @@ export default function SettingsForm({
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      setCopiedToken(true);
-      setTimeout(() => setCopiedToken(false), 2000);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -358,7 +363,8 @@ export default function SettingsForm({
     if (isOpen) {
       fetchData();
       fetchDeviceTokens();
-      setNewlyCreatedUrl(null);
+      setNewlyCreatedKindleUrl(null);
+      setNewlyCreatedAppUrl(null);
       setNewTokenName('');
     }
   }, [isOpen]);
@@ -933,24 +939,60 @@ export default function SettingsForm({
                 </Button>
               </div>
 
-              {/* Show newly created URL */}
-              {newlyCreatedUrl && (
+              {/* Show newly created URLs */}
+              {(newlyCreatedKindleUrl || newlyCreatedAppUrl) && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                  <p className="text-sm font-medium text-green-800 mb-1">✅ Token created! Copy this URL to your device:</p>
-                  <div className="flex gap-2 items-center">
-                    <code className="text-xs bg-green-100 text-green-900 px-2 py-1 rounded flex-1 break-all">
-                      {newlyCreatedUrl}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCopyUrl(newlyCreatedUrl)}
-                      className="shrink-0"
-                    >
-                      {copiedToken ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-green-700 mt-1">⚠️ This URL is only shown once. Copy it now!</p>
+                  <p className="text-sm font-medium text-green-800 mb-2">✅ Token created! Copy the URLs below:</p>
+
+                  {/* App Link */}
+                  {newlyCreatedAppUrl && (
+                    <div className="mb-2">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Link className="h-3 w-3 text-green-700" />
+                        <span className="text-xs font-semibold text-green-800">App Link</span>
+                        <span className="text-xs text-green-600">— full app access, no login needed</span>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <code className="text-xs bg-green-100 text-green-900 px-2 py-1 rounded flex-1 break-all">
+                          {newlyCreatedAppUrl}
+                        </code>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyUrl(newlyCreatedAppUrl, 'app')}
+                          className="shrink-0"
+                        >
+                          {copiedAppUrl ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Kindle Link */}
+                  {newlyCreatedKindleUrl && (
+                    <div className="mb-2">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Smartphone className="h-3 w-3 text-green-700" />
+                        <span className="text-xs font-semibold text-green-800">Kindle URL</span>
+                        <span className="text-xs text-green-600">— simplified Kindle data entry</span>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <code className="text-xs bg-green-100 text-green-900 px-2 py-1 rounded flex-1 break-all">
+                          {newlyCreatedKindleUrl}
+                        </code>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyUrl(newlyCreatedKindleUrl, 'kindle')}
+                          className="shrink-0"
+                        >
+                          {copiedKindleUrl ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-green-700 mt-1">⚠️ These URLs are only shown once. Copy them now!</p>
                 </div>
               )}
 
@@ -961,8 +1003,8 @@ export default function SettingsForm({
                     <div
                       key={token.id}
                       className={`flex items-center justify-between p-3 rounded-lg border ${token.isActive
-                          ? 'bg-white border-slate-200'
-                          : 'bg-gray-50 border-gray-200 opacity-60'
+                        ? 'bg-white border-slate-200'
+                        : 'bg-gray-50 border-gray-200 opacity-60'
                         }`}
                     >
                       <div className="flex-1 min-w-0">
