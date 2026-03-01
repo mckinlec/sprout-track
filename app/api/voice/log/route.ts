@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '../../../db';
-import { ApiResponse } from '../../../types';
-import { validateDeviceToken } from '../../../utils/auth';
+import prisma from '../../db';
+import { ApiResponse } from '../../types';
+import { validateDeviceToken } from '../../utils/auth';
 
 /**
  * POST /api/voice/log
