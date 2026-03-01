@@ -207,14 +207,14 @@ export async function POST(req: NextRequest) {
                     );
                 }
 
-                // Find medicine by name (case-insensitive)
-                const med = await prisma.medicine.findFirst({
+                // Find medicine by name (case-insensitive via manual comparison since SQLite)
+                const allMeds = await prisma.medicine.findMany({
                     where: {
                         familyId,
                         active: true,
-                        name: { equals: medicine, mode: 'insensitive' },
                     },
                 });
+                const med = allMeds.find(m => m.name.toLowerCase() === medicine.toLowerCase()) || null;
 
                 if (!med) {
                     const available = await prisma.medicine.findMany({
@@ -272,15 +272,15 @@ function success(message: string) {
 
 async function resolveBaby(familyId: string, babyName?: string) {
     if (babyName) {
-        // Find by first name (case-insensitive)
-        return prisma.baby.findFirst({
+        // Find by first name (case-insensitive via manual comparison since SQLite)
+        const allBabies = await prisma.baby.findMany({
             where: {
                 familyId,
                 inactive: false,
-                firstName: { equals: babyName, mode: 'insensitive' },
             },
             select: { id: true, firstName: true },
         });
+        return allBabies.find(b => b.firstName.toLowerCase() === babyName.toLowerCase()) || null;
     }
 
     // Auto-select if only one active baby
