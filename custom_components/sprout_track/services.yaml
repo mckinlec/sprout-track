@@ -1,0 +1,153 @@
+log_bottle:
+  name: Log Bottle Feeding
+  description: Log a bottle feeding for a baby.
+  fields:
+    amount:
+      name: Amount
+      description: Amount of the bottle feeding.
+      example: 4
+      selector:
+        number:
+          min: 0
+          max: 20
+          step: 0.5
+          unit_of_measurement: oz
+    unit:
+      name: Unit
+      description: Unit of measurement (oz or ml).
+      default: oz
+      example: oz
+      selector:
+        select:
+          options:
+            - oz
+            - ml
+    bottle_type:
+      name: Bottle Type
+      description: Type of milk in the bottle.
+      example: formula
+      selector:
+        select:
+          options:
+            - formula
+            - breast_milk
+    baby_name:
+      name: Baby Name
+      description: Name of the baby (optional if only one baby).
+      example: Charlotte
+      selector:
+        text:
+
+log_nursing:
+  name: Log Nursing
+  description: Log a breastfeeding session.
+  fields:
+    side:
+      name: Side
+      description: Which side was used for nursing.
+      example: left
+      selector:
+        select:
+          options:
+            - left
+            - right
+            - both
+    baby_name:
+      name: Baby Name
+      description: Name of the baby (optional if only one baby).
+      selector:
+        text:
+
+log_diaper:
+  name: Log Diaper Change
+  description: Log a diaper change for a baby.
+  fields:
+    type:
+      name: Type
+      description: Type of diaper.
+      default: wet
+      example: wet
+      selector:
+        select:
+          options:
+            - wet
+            - dirty
+            - both
+            - dry
+    baby_name:
+      name: Baby Name
+      description: Name of the baby (optional if only one baby).
+      selector:
+        text:
+
+log_sleep_start:
+  name: Start Sleep
+  description: Start a sleep or nap session for a baby.
+  fields:
+    sleep_type:
+      name: Sleep Type
+      description: Type of sleep.
+      default: nap
+      example: nap
+      selector:
+        select:
+          options:
+            - nap
+            - night
+    baby_name:
+      name: Baby Name
+      description: Name of the baby (optional if only one baby).
+      selector:
+        text:
+
+log_sleep_end:
+  name: End Sleep
+  description: End the current sleep session for a baby.
+  fields:
+    baby_name:
+      name: Baby Name
+      description: Name of the baby (optional if only one baby).
+      selector:
+        text:
+
+log_medicine:
+  name: Log Medicine
+  description: Log medicine administration for a baby.
+  fields:
+    medicine:
+      name: Medicine
+      description: Name of the medicine.
+      required: true
+      example: Tylenol
+      selector:
+        text:
+    amount:
+      name: Amount
+      description: Dose amount.
+      example: 5
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 0.5
+    unit:
+      name: Unit
+      description: Unit of measurement.
+      example: ml
+      selector:
+        text:
+    baby_name:
+      name: Baby Name
+      description: Name of the baby (optional if only one baby).
+      selector:
+        text:
+
+log_bath:
+  name: Log Bath
+  description: Log a bath for a baby.
+  fields:
+    baby_name:
+      name: Baby Name
+      description: Name of the baby (optional if only one baby).
+      selector:
+        text:

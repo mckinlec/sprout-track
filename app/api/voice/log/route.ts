@@ -246,9 +246,22 @@ export async function POST(req: NextRequest) {
                 return success(`Logged ${med.name} for ${babyFirstName}: ${doseAmount} ${doseUnit?.toLowerCase() || ''}`);
             }
 
+            case 'bath': {
+                await prisma.bathLog.create({
+                    data: {
+                        babyId,
+                        time: now,
+                        caretakerId,
+                        familyId,
+                    },
+                });
+
+                return success(`Logged bath for ${babyFirstName}`);
+            }
+
             default:
                 return NextResponse.json<ApiResponse<null>>(
-                    { success: false, error: `Unknown action: "${action}". Supported: bottle, breast, diaper, sleep, wake, medicine` },
+                    { success: false, error: `Unknown action: "${action}". Supported: bottle, breast, diaper, sleep, wake, medicine, bath` },
                     { status: 400 }
                 );
         }
