@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
                 prisma.measurement.findMany({
                     where: { babyId, familyId, deletedAt: null },
                     orderBy: { date: 'desc' },
-                    select: { type: true, value: true, unitAbbr: true, date: true },
+                    select: { type: true, value: true, unit: true, date: true },
                 }),
                 // Last note
                 prisma.note.findFirst({
@@ -215,22 +215,22 @@ export async function GET(req: NextRequest) {
                 measurements: {
                     height: latestMeasurements['HEIGHT'] ? {
                         value: latestMeasurements['HEIGHT'].value,
-                        unit: latestMeasurements['HEIGHT'].unitAbbr,
+                        unit: latestMeasurements['HEIGHT'].unit,
                         date: latestMeasurements['HEIGHT'].date.toISOString(),
                     } : null,
                     weight: latestMeasurements['WEIGHT'] ? {
                         value: latestMeasurements['WEIGHT'].value,
-                        unit: latestMeasurements['WEIGHT'].unitAbbr,
+                        unit: latestMeasurements['WEIGHT'].unit,
                         date: latestMeasurements['WEIGHT'].date.toISOString(),
                     } : null,
                     headCircumference: latestMeasurements['HEAD_CIRCUMFERENCE'] ? {
                         value: latestMeasurements['HEAD_CIRCUMFERENCE'].value,
-                        unit: latestMeasurements['HEAD_CIRCUMFERENCE'].unitAbbr,
+                        unit: latestMeasurements['HEAD_CIRCUMFERENCE'].unit,
                         date: latestMeasurements['HEAD_CIRCUMFERENCE'].date.toISOString(),
                     } : null,
                     temperature: latestMeasurements['TEMPERATURE'] ? {
                         value: latestMeasurements['TEMPERATURE'].value,
-                        unit: latestMeasurements['TEMPERATURE'].unitAbbr,
+                        unit: latestMeasurements['TEMPERATURE'].unit,
                         date: latestMeasurements['TEMPERATURE'].date.toISOString(),
                     } : null,
                 },
