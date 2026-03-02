@@ -113,14 +113,14 @@ export async function GET(req: NextRequest) {
                 // Last pump
                 prisma.pumpLog.findFirst({
                     where: { babyId, familyId, deletedAt: null },
-                    orderBy: { time: 'desc' },
-                    select: { time: true, amount: true, unitAbbr: true, side: true, duration: true },
+                    orderBy: { startTime: 'desc' },
+                    select: { startTime: true, endTime: true, totalAmount: true, leftAmount: true, rightAmount: true, unitAbbr: true, duration: true },
                 }),
                 // Last play
                 prisma.playLog.findFirst({
                     where: { babyId, familyId, deletedAt: null },
                     orderBy: { startTime: 'desc' },
-                    select: { startTime: true, endTime: true, type: true, duration: true, milestone: true },
+                    select: { startTime: true, endTime: true, type: true, duration: true },
                 }),
                 // Last mood
                 prisma.moodLog.findFirst({
@@ -241,10 +241,11 @@ export async function GET(req: NextRequest) {
                 } : null,
 
                 lastPump: lastPump ? {
-                    time: lastPump.time.toISOString(),
-                    amount: lastPump.amount,
+                    time: lastPump.startTime.toISOString(),
+                    amount: lastPump.totalAmount,
+                    leftAmount: lastPump.leftAmount,
+                    rightAmount: lastPump.rightAmount,
                     unit: lastPump.unitAbbr,
-                    side: lastPump.side,
                     durationMinutes: lastPump.duration,
                 } : null,
 
@@ -253,7 +254,6 @@ export async function GET(req: NextRequest) {
                     endTime: lastPlay.endTime?.toISOString() || null,
                     type: lastPlay.type,
                     durationMinutes: lastPlay.duration,
-                    milestone: lastPlay.milestone,
                 } : null,
 
                 lastMood: lastMood ? {
