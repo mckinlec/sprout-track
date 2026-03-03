@@ -1,6 +1,19 @@
 # Sprout Track — Home Assistant Setup Guide
 
-Everything is in the [sprout-track GitHub repo](https://github.com/mckinlec/sprout-track). The app is already deployed at `192.168.1.2:3000`.
+## What is Sprout Track?
+
+[Sprout Track](https://baby.mckinlec.com) is a baby activity tracker for logging bottles, nursing, diapers, sleep, baths, medicine, measurements, moods, play sessions, and more. It's used daily by parents and caretakers to keep track of a newborn's routine.
+
+## Why Home Assistant?
+
+Integrating Sprout Track with Home Assistant turns your baby data into a first-class part of your smart home:
+
+- **At-a-glance dashboards** — see last feed, diaper count, and sleep status on wall-mounted tablets alongside your other HA cards
+- **Hands-free logging** — say *"log 4 ounce bottle"* or *"dirty diaper"* through your voice assistant while your hands are full
+- **Smart automations** — dim nursery lights when baby falls asleep, get notified when it's been too long since the last feed, or track patterns over time with HA's history graphs
+- **Everything in one place** — no need to unlock your phone and open an app when HA is already running your home
+
+The source code is in the [sprout-track GitHub repo](https://github.com/mckinlec/sprout-track). The app is live at [baby.mckinlec.com](https://baby.mckinlec.com).
 
 ---
 
@@ -65,7 +78,7 @@ Settings → System → Restart (or `ha core restart` via SSH)
 1. Settings → Devices & Services → **Add Integration**
 2. Search for **"Sprout Track"**
 3. Enter:
-   - **URL**: `http://192.168.1.2:3000`
+   - **URL**: `https://baby.mckinlec.com`
    - **Device Token**: paste the token from Sprout Track Settings
 4. Click Submit
 
@@ -118,7 +131,7 @@ This lets you say things like *"log 4 ounce bottle"* or *"dirty diaper"* to your
 ```yaml
 rest_command:
   sprout_track_log:
-    url: "http://192.168.1.2:3000/api/voice/log"
+    url: "https://baby.mckinlec.com/api/voice/log"
     method: POST
     headers:
       Authorization: "Bearer YOUR_DEVICE_TOKEN_HERE"
@@ -222,7 +235,7 @@ If using Open WebUI instead of HA for voice, create a Tool in Workspace → Tool
 ```python
 class Tools:
     def __init__(self):
-        self.base_url = "http://192.168.1.2:3000"
+        self.base_url = "https://baby.mckinlec.com"
         self.token = "YOUR_DEVICE_TOKEN_HERE"
 
     async def log_baby_activity(
@@ -302,6 +315,6 @@ automation:
 ## Troubleshooting
 
 - **Integration not showing up?** Make sure `custom_components/sprout_track/` folder exists with all files, then restart HA.
-- **"Cannot connect" during setup?** Check that `http://192.168.1.2:3000/api/ha/status` is reachable from HA. Test with `curl` from the HA SSH terminal.
+- **"Cannot connect" during setup?** Check that `https://baby.mckinlec.com/api/ha/status` is reachable from HA. Test with `curl` from the HA SSH terminal.
 - **Sensors show "unavailable"?** Check the device token hasn't been revoked in Sprout Track Settings.
 - **Voice commands not working?** Verify the `rest_command` is loaded (Developer Tools → Services → search `rest_command.sprout_track_log`).

@@ -9,7 +9,7 @@ Integration with [Extended OpenAI Conversation](https://github.com/jekalmin/exte
 ```yaml
 rest_command:
   sprout_track_log:
-    url: "http://192.168.1.2:3000/api/voice/log"
+    url: "https://baby.mckinlec.com/api/voice/log"
     method: POST
     headers:
       Authorization: "Bearer YOUR_DEVICE_TOKEN_HERE"
