@@ -1,0 +1,24 @@
+# Sprout Track REST Commands for Home Assistant
+# Merge this into your HA configuration.yaml
+# Replace YOUR_DEVICE_TOKEN_HERE with a token from Sprout Track Settings → Device Tokens
+
+rest_command:
+  sprout_track_log:
+    url: "https://baby.mckinlec.com/api/voice/log"
+    method: POST
+    headers:
+      Authorization: "Bearer YOUR_DEVICE_TOKEN_HERE"
+      Content-Type: "application/json"
+    payload: "{{ payload }}"
+    content_type: "application/json"
+  sprout_track_query:
+    url: "https://baby.mckinlec.com/api/ha/query"
+    method: GET
+    headers:
+      Authorization: "Bearer YOUR_DEVICE_TOKEN_HERE"
+    content_type: "application/json"
+
+# Pump session timer (15 minutes)
+timer:
+  pump_session:
+    duration: "00:15:00"

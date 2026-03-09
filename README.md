@@ -118,6 +118,10 @@ docker-compose up -d
   - [Admin Scripts](#admin-scripts)
   - [Updating the Application](#updating-the-application)
 - [Environment Variables](#environment-variables)
+- [Home Assistant Integration](#home-assistant-integration)
+  - [Sensors and Services](#sensors-and-services)
+  - [Voice Commands via LLM](#voice-commands-via-llm)
+  - [API Endpoints](#api-endpoints)
 
 ## Tech Stack
 
@@ -451,7 +455,44 @@ The `./scripts/env-update.sh` script automatically manages environment variables
 - **AUTH_LIFE**: Lower values increase security but require more frequent logins.
 - **IDLE_TIME**: Determines how long a user can be inactive before being logged out.
 - **ENC_HASH**: Automatically generated for admin password encryption; do not modify manually.
-- **COOKIE_SECURE**: 
+- **COOKIE_SECURE**:
   - Set to `"false"` to allow cookies on non-HTTPS connections (development or initial setup)
   - Set to `"true"` when you have an SSL certificate in place (recommended for production)
   - When set to `"true"`, the application will only work over HTTPS connections
+
+## Home Assistant Integration
+
+Sprout Track includes a full Home Assistant integration for smart home dashboards and hands-free voice control.
+
+### Sensors and Services
+
+Install the custom integration from `custom_components/sprout_track/` to get:
+
+- **16 sensors per baby** — last feed, last diaper, feeds today, diapers today, total bottle oz, sleep status, last bath, last medicine, mood, weight, height, temperature, head circumference, last pump, last play, last note
+- **1 binary sensor** — sleeping on/off
+- **7 services** — log_bottle, log_nursing, log_diaper, log_sleep_start, log_sleep_end, log_medicine, log_bath
+
+Setup: Copy the `custom_components/sprout_track/` folder to your HA config directory, restart HA, then add the integration via Settings > Devices & Services.
+
+### Voice Commands via LLM
+
+With an Ollama (or similar) conversation agent in HA, you can use natural language to log activities and query baby status:
+
+- *"Log a bottle"* → asks how many ounces → logs it
+- *"River went to sleep"* → asks nap or bedtime → logs it
+- *"River is awake"* → ends sleep session
+- *"I'm starting to pump"* → starts pump session with 15-minute timer
+- *"When was the last diaper change?"* → queries live data and answers naturally
+- *"How many bottles today?"* → reports total count and ounces
+
+The integration uses HA Scripts exposed as LLM tools via the Assist API. See [docs/ha-integration-guide.md](docs/ha-integration-guide.md) for the complete setup guide.
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/ha/status` | GET | Structured JSON baby status (for sensors, polled every 60s) |
+| `/api/ha/query` | GET | Human-readable baby status summary (for LLM voice queries) |
+| `/api/voice/log` | POST | Log activities: bottle, breast, diaper, sleep, wake, medicine, bath, pump |
+
+All endpoints require `Authorization: Bearer {device_token}` header. Create device tokens in the Sprout Track Settings UI.

@@ -1,0 +1,20 @@
+# Sprout Track Automations for Home Assistant
+# Merge this into your HA automations.yaml
+
+- id: pump_timer_done
+  alias: "Pump Timer Notification"
+  description: "Announce when the 15-minute pump session timer is done"
+  triggers:
+    - trigger: event
+      event_type: timer.finished
+      event_data:
+        entity_id: timer.pump_session
+  actions:
+    - action: tts.speak
+      target:
+        entity_id: tts.piper
+      data:
+        cache: false
+        media_player_entity_id: media_player.home_assistant_voice_0a4228_media_player
+        message: "Your 15 minute pump session is complete."
+  mode: single

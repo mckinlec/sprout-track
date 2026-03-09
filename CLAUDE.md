@@ -105,6 +105,13 @@ These rules capture the key development patterns from the Web to Mobile Developm
 - Plan for cross-platform navigation patterns
 - Document any web-specific behavior that will need adaptation for mobile
 
+## Verification & Testing
+
+- **Never trust LLM-generated confirmations as proof of success.** When testing integrations that involve an LLM (e.g., Home Assistant + Ollama), always verify the actual data landed in the database or API response — the LLM may fabricate success messages.
+- After deploying changes that affect API endpoints or external integrations, verify with a direct API call (e.g., `curl`) that the data was actually persisted, not just that the UI or voice assistant said it worked.
+- When modifying HA scripts or other external service configs, verify the full request/response chain end-to-end: script → REST command → API → database.
+- Keep temporary debug/test scripts out of the repo (e.g., `ssh_*.py` is in `.gitignore`).
+
 ## Code Modification Guidelines
 
 - Challenge yourself to write as few lines of code as possible

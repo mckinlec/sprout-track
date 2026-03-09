@@ -3,6 +3,9 @@ import prisma from '../../db';
 import { ApiResponse } from '../../types';
 import { validateDeviceToken } from '../../utils/auth';
 
+// Ensure this route is never cached — auth depends on the Authorization header
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/ha/status
  *
@@ -15,6 +18,7 @@ export async function GET(req: NextRequest) {
     try {
         const authHeader = req.headers.get('authorization');
         if (!authHeader?.startsWith('Bearer ')) {
+            console.error('[ha/status] Auth failed: missing or malformed Authorization header');
             return NextResponse.json<ApiResponse<null>>(
                 { success: false, error: 'Missing Authorization: Bearer {device_token} header' },
                 { status: 401 }
@@ -25,6 +29,7 @@ export async function GET(req: NextRequest) {
         const authResult = await validateDeviceToken(token);
 
         if (!authResult.authenticated || !authResult.familyId) {
+            console.error(`[ha/status] Auth failed: ${authResult.error} (token length=${token.length}, preview=${token.substring(0, 8)}...)`);
             return NextResponse.json<ApiResponse<null>>(
                 { success: false, error: authResult.error || 'Invalid or expired device token' },
                 { status: 401 }
@@ -39,9 +44,8 @@ export async function GET(req: NextRequest) {
             select: { id: true, firstName: true, lastName: true, birthDate: true, gender: true },
         });
 
-        // Get today's start (midnight local — use server timezone)
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
+        // Get today's start (midnight Eastern — server may be UTC in Docker)
+        const todayStart = getMidnightEastern();
 
         const babyStatuses = await Promise.all(babies.map(async (baby) => {
             const babyId = baby.id;
@@ -280,4 +284,15 @@ export async function GET(req: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+function getMidnightEastern(): Date {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    const tzName = now.toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        timeZoneName: 'short',
+    });
+    const offsetHours = tzName.includes('EDT') ? 4 : 5;
+    return new Date(`${dateStr}T${String(offsetHours).padStart(2, '0')}:00:00.000Z`);
 }

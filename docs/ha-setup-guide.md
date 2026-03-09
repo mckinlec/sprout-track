@@ -22,7 +22,8 @@ The source code is in the [sprout-track GitHub repo](https://github.com/mckinlec
 - Home Assistant with SSH or Samba add-on access
 - A device token from Sprout Track (Settings → Device Tokens → Create)
 - [HACS](https://hacs.xyz/) installed (optional, for auto-updates)
-- [Extended OpenAI Conversation](https://github.com/jekalmin/extended_openai_conversation) installed (for voice/LLM commands)
+- [Ollama](https://ollama.com/) running locally with a tool-calling model (e.g., `qwen2.5`, `llama3.1`)
+- Ollama and Home Assistant LLM API integrations installed in HA
 
 ---
 
@@ -122,11 +123,11 @@ Settings → System → Restart (or `ha core restart` via SSH)
 
 ---
 
-## Part 2: Add Voice Commands via Extended OpenAI Conversation
+## Part 2: Add Voice Commands via Ollama + Assist LLM Control
 
-This lets you say things like *"log 4 ounce bottle"* or *"dirty diaper"* to your HA assistant.
+This lets you say things like *"log 4 ounce bottle"* or *"dirty diaper"* to your HA assistant. The LLM sees HA scripts as callable tools and maps natural language to the right action.
 
-### Step 1: Add rest_command to `configuration.yaml`
+### Step 1: Add REST commands to `configuration.yaml`
 
 ```yaml
 rest_command:
@@ -136,95 +137,81 @@ rest_command:
     headers:
       Authorization: "Bearer YOUR_DEVICE_TOKEN_HERE"
       Content-Type: "application/json"
-    payload: "{{ payload }}"
+    payload: >-
+      {{ payload }}
     content_type: "application/json"
+
+  sprout_track_query:
+    url: "https://baby.mckinlec.com/api/ha/query"
+    method: GET
+    headers:
+      Authorization: "Bearer YOUR_DEVICE_TOKEN_HERE"
 ```
 
 > Replace `YOUR_DEVICE_TOKEN_HERE` with the same device token.
 
-### Step 2: Add function to Extended OpenAI Conversation
+### Step 2: Create HA scripts
 
-1. Settings → Voice Assistants → Edit your assistant
-2. Select "Extended OpenAI Conversation" as the conversation agent
-3. Go to Options → Functions
-4. Add this YAML:
+Add scripts to `scripts.yaml` that wrap the REST commands. Each script becomes a tool the LLM can call. Example:
 
 ```yaml
-- spec:
-    name: log_baby_activity
-    description: >-
-      Log a baby activity in Sprout Track. Use this when the user mentions
-      feeding, diaper changes, sleep, waking up, bath, or giving medicine.
-
-      Actions and their fields:
-        bottle: amount (number), unit (oz/ml), bottleType (formula/breast_milk)
-        breast/nursing: side (left/right/both)
-        diaper: type (wet/dirty/both/dry)
-        sleep/nap: sleepType (nap/night) — starts a sleep session
-        wake/awake: ends the current sleep session
-        medicine: medicine (name of medicine), amount (number), unit
-        bath: no extra fields
-
-      Only include fields the user mentions. babyName is optional (auto-selects if one baby).
-    parameters:
-      type: object
-      properties:
-        action:
-          type: string
-          enum: [bottle, breast, nursing, diaper, sleep, nap, wake, awake, medicine, bath]
-          description: The type of baby activity to log
-        amount:
-          type: number
-          description: Amount (ounces for bottle, dose for medicine)
-        unit:
-          type: string
-          description: Unit of measurement (oz, ml)
-        type:
-          type: string
-          enum: [wet, dirty, both, dry]
-          description: Diaper type
-        side:
-          type: string
-          enum: [left, right, both]
-          description: Nursing side
-        sleepType:
-          type: string
-          enum: [nap, night]
-          description: Type of sleep
-        bottleType:
-          type: string
-          description: Bottle content type (formula, breast_milk)
-        medicine:
-          type: string
-          description: Name of the medicine
-        babyName:
-          type: string
-          description: Baby's first name, only if user specifies
-      required:
-      - action
-  function:
-    type: script
-    sequence:
-    - service: rest_command.sprout_track_log
+sprout_track_log_bottle:
+  alias: Log Bottle Feeding
+  description: "Log a bottle feeding for the baby. Requires amount and unit."
+  fields:
+    amount:
+      description: "Amount of the bottle"
+      required: true
+    unit:
+      description: "Unit: oz or ml"
+      required: true
+    bottle_type:
+      description: "Type: formula or breast_milk"
+      required: false
+  mode: single
+  sequence:
+    - action: rest_command.sprout_track_log
       data:
         payload: >-
-          {{ dict(
-            action=action,
-            amount=amount|default(None),
-            unit=unit|default(None),
-            type=type|default(None),
-            side=side|default(None),
-            sleepType=sleepType|default(None),
-            bottleType=bottleType|default(None),
-            medicine=medicine|default(None),
-            babyName=babyName|default(None)
-          ) | to_json }}
-      response_variable: _function_result
+          {"action":"bottle","amount":"{{ amount }}","unit":"{{ unit }}","bottleType":"{{ bottle_type | default('formula') }}"}
+      response_variable: api_result
+    - stop: "Bottle logged"
+      response_variable: api_result
+
+sprout_track_query_status:
+  alias: Get Baby Status
+  description: "Get the current status of the baby including last feed, diaper, sleep, and today's totals."
+  fields: {}
+  mode: single
+  sequence:
+    - action: rest_command.sprout_track_query
+      response_variable: query_result
+    - stop: "Status retrieved"
+      response_variable: query_result
 ```
 
-### Step 3: Restart HA and test
+See [ha-integration-guide.md](ha-integration-guide.md) for the full set of scripts (diaper, sleep, wake, bath, pump, query).
 
-Say: *"Log a 4 ounce bottle"* — the LLM should call the function, which calls your API, and confirm what was logged.
+### Step 3: Expose scripts to Assist
+
+1. Settings → Voice Assistants → **Expose** tab
+2. Click **+ Expose entities**
+3. Find and select all `sprout_track_*` scripts
+4. Save
+
+> Scripts MUST be exposed via the UI — they won't be visible to the LLM otherwise.
+
+### Step 4: Configure Ollama conversation agent
+
+1. Settings → Devices & Services → **Ollama** → Configure
+2. Set the system prompt to instruct the LLM on how to handle baby-related commands
+3. Enable **Assist** (LLM Control) so it can call exposed scripts as tools
+
+See [ha-integration-guide.md](ha-integration-guide.md#step-4-configure-the-ollama-conversation-agent) for the full Ollama prompt.
+
+### Step 5: Restart HA and test
+
+Say: *"Log a 4 ounce bottle"* — the LLM should call the script, which calls your API, and confirm what was logged.
 
 ---
 

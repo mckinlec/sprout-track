@@ -1,0 +1,383 @@
+# =============================================================================
+# SPROUT TRACK - Query script for answering questions about baby status
+# =============================================================================
+
+sprout_track_query_status:
+  alias: "Get Baby Status"
+  mode: single
+  description: >-
+    Get the current status of the baby including last feeding time, last diaper
+    change time, sleep status, total bottles today, total diapers today, last
+    bath, and last medicine. Call this whenever the user asks ANY question about
+    the baby such as when was the last feeding, when was the last diaper change,
+    is the baby sleeping, how many bottles today, how many ounces today, last
+    bath, or last medicine. This returns live data from the baby tracking database.
+    Always call this before answering any question about the baby.
+  fields: {}
+  sequence:
+    - action: rest_command.sprout_track_query
+      response_variable: query_result
+    - stop: "Baby status retrieved"
+      response_variable: query_result
+
+# =============================================================================
+# SPROUT TRACK - Voice-callable scripts for baby tracking
+# =============================================================================
+
+sprout_track_log_bottle:
+  alias: "Log Bottle Feeding"
+  mode: single
+  description: "Log a bottle feeding for the baby. Call this when the user says the baby had a bottle, formula, or breast milk from a bottle. Extract the amount in ounces or ml from their speech."
+  fields:
+    amount:
+      description: "Amount of milk in the bottle (number). Example: 4"
+      example: 4
+      required: true
+      selector:
+        number:
+          min: 0.5
+          max: 12
+          step: 0.5
+    unit:
+      description: "Unit of measurement: oz or ml. Defaults to oz."
+      example: "oz"
+      required: false
+      selector:
+        select:
+          options:
+            - "oz"
+            - "ml"
+    bottle_type:
+      description: "Type of milk: formula or breast_milk. Defaults to formula."
+      example: "formula"
+      required: false
+      selector:
+        select:
+          options:
+            - "formula"
+            - "breast_milk"
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "bottle", "amount": "{{ amount }}", "unit": "{{ unit | default('oz') }}", "bottleType": "{{ bottle_type | default('formula') }}"}
+      response_variable: bottle_result
+    - stop: "Bottle logged"
+      response_variable: bottle_result
+
+sprout_track_log_diaper:
+  alias: "Log Diaper Change"
+  mode: single
+  description: "Log a diaper change for the baby. Call this when the user mentions changing a diaper, wet diaper, dirty diaper, or poop."
+  fields:
+    type:
+      description: "Type of diaper: wet, dirty, or both"
+      example: "wet"
+      required: true
+      selector:
+        select:
+          options:
+            - "wet"
+            - "dirty"
+            - "both"
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "diaper", "type": "{{ type }}"}
+      response_variable: diaper_result
+    - stop: "Diaper logged"
+      response_variable: diaper_result
+
+sprout_track_log_nursing:
+  alias: "Log Nursing Session"
+  mode: single
+  description: "Log a breastfeeding or nursing session. Call this when the user says the baby nursed or breastfed."
+  fields:
+    side:
+      description: "Which side: left, right, or both. Defaults to both."
+      example: "both"
+      required: false
+      selector:
+        select:
+          options:
+            - "left"
+            - "right"
+            - "both"
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "nursing", "side": "{{ side | default('both') }}"}
+      response_variable: nursing_result
+    - stop: "Nursing logged"
+      response_variable: nursing_result
+
+sprout_track_log_sleep:
+  alias: "Start Sleep Tracking"
+  mode: single
+  description: "Start tracking a sleep or nap session for the baby. Call this when the user says the baby is going to sleep, going down for a nap, or it's bedtime."
+  fields:
+    sleep_type:
+      description: "Type of sleep: nap or night"
+      example: "nap"
+      required: true
+      selector:
+        select:
+          options:
+            - "nap"
+            - "night"
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "sleep", "sleepType": "{{ sleep_type }}"}
+      response_variable: sleep_result
+    - stop: "Sleep logged"
+      response_variable: sleep_result
+
+sprout_track_log_wake:
+  alias: "End Sleep Tracking"
+  mode: single
+  description: "End the current sleep or nap session for the baby. Call this when the user says the baby woke up or is awake."
+  fields: {}
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "wake"}
+      response_variable: wake_result
+    - stop: "Wake logged"
+      response_variable: wake_result
+
+sprout_track_log_bath:
+  alias: "Log Bath"
+  mode: single
+  description: "Log a bath for the baby. Call this when the user says the baby had a bath."
+  fields: {}
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "bath"}
+      response_variable: bath_result
+    - stop: "Bath logged"
+      response_variable: bath_result
+
+sprout_track_log_medicine:
+  alias: "Log Medicine"
+  mode: single
+  description: "Log medicine given to the baby. Call this when the user says they gave the baby medicine, Tylenol, ibuprofen, vitamins, etc."
+  fields:
+    medicine:
+      description: "Name of the medicine (required). Example: Tylenol"
+      example: "Tylenol"
+      required: true
+      selector:
+        text:
+    amount:
+      description: "Amount given (number). Example: 5"
+      example: 5
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100
+    unit:
+      description: "Unit: ml, drops, tablets, etc."
+      example: "ml"
+      required: false
+      selector:
+        text:
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "medicine", "medicine": "{{ medicine }}"{% if amount is defined and amount %}, "amount": "{{ amount }}"{% endif %}{% if unit is defined and unit %}, "unit": "{{ unit }}"{% endif %}}
+      response_variable: medicine_result
+    - stop: "Medicine logged"
+      response_variable: medicine_result
+
+sprout_track_log_pump_start:
+  alias: "Start Pumping Session"
+  mode: single
+  description: >-
+    Start a breast milk pumping session. Call this when the user says they are
+    starting to pump, beginning a pump session, or pumping. This creates a timed
+    session that can be ended later with the End Pumping script.
+  fields:
+    amount:
+      description: "Amount pumped (if known upfront, otherwise log at end)"
+      example: 4
+      selector:
+        number:
+          min: 0.5
+          max: 20
+          step: 0.5
+    unit:
+      description: "Unit of measurement - oz or ml"
+      example: "oz"
+      default: "oz"
+      selector:
+        select:
+          options:
+            - "oz"
+            - "ml"
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "pump"{% if amount is defined and amount %}, "amount": {{ amount }}{% endif %}{% if unit is defined and unit %}, "unit": "{{ unit }}"{% endif %}}
+      response_variable: pump_result
+    - action: timer.start
+      target:
+        entity_id: timer.pump_session
+      data:
+        duration: "00:15:00"
+    - stop: "Pump session started"
+      response_variable: pump_result
+
+sprout_track_log_pump_end:
+  alias: "End Pumping Session"
+  mode: single
+  description: >-
+    End the current breast milk pumping session. Call this when the user says they
+    are done pumping, finished pumping, or the pump session is over. Optionally
+    include the total amount pumped.
+  fields:
+    amount:
+      description: "Total amount pumped in ounces or ml"
+      example: 4
+      selector:
+        number:
+          min: 0.5
+          max: 20
+          step: 0.5
+    unit:
+      description: "Unit of measurement - oz or ml"
+      example: "oz"
+      default: "oz"
+      selector:
+        select:
+          options:
+            - "oz"
+            - "ml"
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "pump-end"{% if amount is defined and amount %}, "amount": {{ amount }}{% endif %}{% if unit is defined and unit %}, "unit": "{{ unit }}"{% endif %}}
+      response_variable: pump_end_result
+    - stop: "Pump session ended"
+      response_variable: pump_end_result
+
+# =============================================================================
+# SPROUT TRACK - Undo & Edit scripts
+# =============================================================================
+
+sprout_track_undo_last:
+  alias: "Undo Last Entry"
+  mode: single
+  description: >-
+    Undo (delete) the most recent entry of a given type. Call this when the user
+    says "undo the last diaper", "delete the last bottle", "remove the last
+    sleep", "that was wrong", etc. You must specify the log_type.
+  fields:
+    log_type:
+      description: "Type of entry to undo: bottle, breast, diaper, sleep, bath, medicine, or pump"
+      required: true
+      selector:
+        select:
+          options:
+            - "bottle"
+            - "breast"
+            - "diaper"
+            - "sleep"
+            - "bath"
+            - "medicine"
+            - "pump"
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "undo", "logType": "{{ log_type }}"}
+      response_variable: undo_result
+    - stop: "Entry undone"
+      response_variable: undo_result
+
+sprout_track_edit_last:
+  alias: "Edit Last Entry"
+  mode: single
+  description: >-
+    Edit the most recent entry of a given type. Call this when the user says
+    "change the last diaper to dirty", "update the last bottle to 5 oz",
+    "that was actually a nap not bedtime", etc. You must specify the log_type
+    and at least one field to change.
+  fields:
+    log_type:
+      description: "Type of entry to edit: bottle, breast, diaper, sleep, bath, medicine, or pump"
+      required: true
+      selector:
+        select:
+          options:
+            - "bottle"
+            - "breast"
+            - "diaper"
+            - "sleep"
+            - "bath"
+            - "medicine"
+            - "pump"
+    amount:
+      description: "New amount (for bottle, medicine, pump)"
+      required: false
+    unit:
+      description: "New unit: oz or ml"
+      required: false
+      selector:
+        select:
+          options:
+            - "oz"
+            - "ml"
+    type:
+      description: "New diaper type: wet, dirty, both, dry"
+      required: false
+      selector:
+        select:
+          options:
+            - "wet"
+            - "dirty"
+            - "both"
+            - "dry"
+    side:
+      description: "New breast side: left, right, both"
+      required: false
+      selector:
+        select:
+          options:
+            - "left"
+            - "right"
+            - "both"
+    sleep_type:
+      description: "New sleep type: nap or night"
+      required: false
+      selector:
+        select:
+          options:
+            - "nap"
+            - "night"
+    bottle_type:
+      description: "New bottle type: formula or breast_milk"
+      required: false
+      selector:
+        select:
+          options:
+            - "formula"
+            - "breast_milk"
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "edit", "logType": "{{ log_type }}"{% if amount is defined and amount %}, "amount": {{ amount }}{% endif %}{% if unit is defined and unit %}, "unit": "{{ unit }}"{% endif %}{% if type is defined and type %}, "type": "{{ type }}"{% endif %}{% if side is defined and side %}, "side": "{{ side }}"{% endif %}{% if sleep_type is defined and sleep_type %}, "sleepType": "{{ sleep_type }}"{% endif %}{% if bottle_type is defined and bottle_type %}, "bottleType": "{{ bottle_type }}"{% endif %}}
+      response_variable: edit_result
+    - stop: "Entry updated"
+      response_variable: edit_result
