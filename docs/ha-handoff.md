@@ -13,7 +13,7 @@ The HA integration is **fully working** — voice commands, LLM queries, sensor 
 - ✅ HA scripts created in `scripts.yaml` (bottle, diaper, sleep, wake, bath, pump start/end, query)
 - ✅ Scripts exposed to Assist API via HA UI
 - ✅ Ollama conversation agent configured with Assist LLM Control and custom system prompt
-- ✅ Conversational flow working (asks for missing bottle amount, asks nap vs bedtime)
+- ✅ Single-shot voice commands (no follow-ups needed — defaults used for missing info, correctable via edit)
 - ✅ Pump timer (15 min) with TTS notification via Piper to Voice PE
 - ✅ Timezone bug fixed — "today" stats use Eastern midnight, not UTC midnight
 - ✅ Voice undo/edit support — "undo the last diaper", "change the last bottle to 5 oz"
