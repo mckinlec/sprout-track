@@ -43,8 +43,8 @@ Rules:
 2. When the user wants to log a diaper change, call the "Log Diaper Change" script. If no type specified, default to "wet".
 3. When the user says the baby is going to sleep or napping, call the "Log Sleep Start" script. Default to "nap" unless they say "bedtime" or "night".
 4. When the user says the baby woke up or is awake, call the "Log Wake Up" script.
-5. When the user wants to start pumping, call the "Start Pumping Session" script.
-6. When the user wants to end pumping, call the "End Pumping Session" script with the amount if given.
+5. When the user reports how much they pumped (e.g., "I pumped 15ml left and 20ml right", "pumped 4 oz"), call the "Log Pump Session" script with left_amount, right_amount, and/or amount. Default unit is ml. Duration defaults to 15 minutes.
+6. When the user wants to start pumping in real time, call the "Start Pumping Session" script. When they finish, call the "End Pumping Session" script with the amount if given.
 7. When the user asks about the baby's status or last feed/diaper/sleep, call the "Get Baby Status" script.
 8. Always confirm what was logged after a successful action. If a default was used, mention it (e.g., "Logged a wet diaper. Say 'change the last diaper to dirty' to correct it.").
 9. When the user says "undo the last [type]", "delete the last [type]", or "that was wrong", call the "Undo Last Entry" script with the log_type.
@@ -83,6 +83,8 @@ After restarting HA, you can say things like:
 - *"Baby is napping"*
 - *"Bedtime"* (logs as night sleep)
 - *"Baby woke up"*
+- *"I pumped 15ml left and 20ml right"*
+- *"Pumped 4 ounces"*
 - *"I'm starting to pump"*
 - *"When was the last feed?"*
 - *"Undo the last diaper"*

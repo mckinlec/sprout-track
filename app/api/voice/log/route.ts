@@ -11,7 +11,7 @@ import { validateDeviceToken } from '../../utils/auth';
  * 
  * Request body:
  * {
- *   "action": "bottle" | "breast" | "diaper" | "sleep" | "wake" | "medicine" | "bath" | "pump" | "pump-end" | "undo" | "edit",
+ *   "action": "bottle" | "breast" | "diaper" | "sleep" | "wake" | "medicine" | "bath" | "pump" | "pump-log" | "pump-end" | "undo" | "edit",
  *   "babyName": "Charlotte",      // optional - auto-selects if only one active baby
  *   "amount": 4,                   // optional - numeric amount
  *   "unit": "oz",                  // optional - defaults to family setting
@@ -20,6 +20,8 @@ import { validateDeviceToken } from '../../utils/auth';
  *   "sleepType": "nap",           // for sleep: nap, night
  *   "bottleType": "formula",      // for bottle: formula, breast_milk, etc.
  *   "medicine": "Tylenol",        // for medicine: name of the medicine
+ *   "leftAmount": 15,             // for pump-log: left breast amount
+ *   "rightAmount": 20,            // for pump-log: right breast amount
  *   "logType": "bottle"           // for undo/edit: which log type to target
  * }
  * 
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
 
         // Parse JSON body
         const body = await req.json();
-        const { action, babyName, amount, unit, type, side, sleepType, bottleType, medicine, duration, logType } = body;
+        const { action, babyName, amount, unit, type, side, sleepType, bottleType, medicine, duration, logType, leftAmount, rightAmount } = body;
 
         if (!action) {
             return NextResponse.json<ApiResponse<null>>(
@@ -280,6 +282,40 @@ export async function POST(req: NextRequest) {
 
                 const durationMsg = pumpDuration ? ` (${pumpDuration} min timer)` : '';
                 return success(`Started pumping session for ${babyFirstName}${durationMsg}`);
+            }
+
+            case 'pump-log':
+            case 'pump_log': {
+                // Log a completed pump session after the fact
+                const pumpUnit = resolveUnit(unit, 'ML');
+                const left = leftAmount ? parseFloat(leftAmount) : undefined;
+                const right = rightAmount ? parseFloat(rightAmount) : undefined;
+                const total = amount ? parseFloat(amount) : (left || 0) + (right || 0) || undefined;
+                const dur = duration ? parseInt(duration) : 15; // default 15 min
+                const endTime = now;
+                const startTime = new Date(now.getTime() - dur * 60000);
+
+                await prisma.pumpLog.create({
+                    data: {
+                        babyId,
+                        startTime,
+                        endTime,
+                        duration: dur,
+                        leftAmount: left,
+                        rightAmount: right,
+                        totalAmount: total,
+                        unitAbbr: pumpUnit,
+                        caretakerId,
+                        familyId,
+                    },
+                });
+
+                const parts: string[] = [];
+                if (left !== undefined) parts.push(`${left} ${pumpUnit.toLowerCase()} left`);
+                if (right !== undefined) parts.push(`${right} ${pumpUnit.toLowerCase()} right`);
+                if (total !== undefined && parts.length === 0) parts.push(`${total} ${pumpUnit.toLowerCase()} total`);
+                const detail = parts.length > 0 ? `: ${parts.join(', ')}` : '';
+                return success(`Logged pump session for ${babyFirstName}${detail} (${dur} min)`);
             }
 
             case 'pump-end':

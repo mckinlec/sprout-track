@@ -198,6 +198,66 @@ sprout_track_log_medicine:
     - stop: "Medicine logged"
       response_variable: medicine_result
 
+sprout_track_log_pump:
+  alias: "Log Pump Session"
+  mode: single
+  description: >-
+    Log a completed breast pump session after the fact. Call this when the user
+    says how much they pumped (e.g., "I pumped 15ml left and 20ml right", "pumped
+    4 ounces"). This creates a completed session with a default 15-minute duration.
+    Use this instead of Start/End Pumping when the user is reporting what they
+    already pumped rather than tracking in real time.
+  fields:
+    left_amount:
+      description: "Amount from left breast (number)"
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 500
+          step: 1
+    right_amount:
+      description: "Amount from right breast (number)"
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 500
+          step: 1
+    amount:
+      description: "Total amount pumped (if not specifying left/right separately)"
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 500
+          step: 1
+    unit:
+      description: "Unit of measurement: oz or ml. Defaults to ml."
+      example: "ml"
+      required: false
+      selector:
+        select:
+          options:
+            - "oz"
+            - "ml"
+    duration:
+      description: "Duration in minutes. Defaults to 15."
+      example: 15
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 120
+  sequence:
+    - action: rest_command.sprout_track_log
+      data:
+        payload: >-
+          {"action": "pump-log"{% if left_amount is defined and left_amount %}, "leftAmount": {{ left_amount }}{% endif %}{% if right_amount is defined and right_amount %}, "rightAmount": {{ right_amount }}{% endif %}{% if amount is defined and amount %}, "amount": {{ amount }}{% endif %}, "unit": "{{ unit | default('ml') }}"{% if duration is defined and duration %}, "duration": {{ duration }}{% endif %}}
+      response_variable: pump_log_result
+    - stop: "Pump session logged"
+      response_variable: pump_log_result
+
 sprout_track_log_pump_start:
   alias: "Start Pumping Session"
   mode: single
